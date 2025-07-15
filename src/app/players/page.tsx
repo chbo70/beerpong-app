@@ -31,9 +31,7 @@ export default function ManagePlayersPage() {
         (payload: RealtimePostgresChangesPayload<Player>) =>
           handleRealtimeUpdate(payload)
       )
-
       .subscribe();
-
     return () => {
       supabase.removeChannel(channel);
     };
