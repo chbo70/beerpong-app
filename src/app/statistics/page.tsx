@@ -11,6 +11,7 @@ import {
   CardFooter,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
 
 interface Player {
   id: string;
@@ -22,7 +23,7 @@ interface Player {
   islands: number;
   games_played: number;
   games_won: number;
-  inserted_at: string;
+  inserted_at?: string; // optional, since nullable and timestamp
 }
 
 export default function StatisticsPage() {
@@ -37,7 +38,7 @@ export default function StatisticsPage() {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "players" },
-        (payload) => {
+        (payload: RealtimePostgresChangesPayload<Player>) => {
           handleRealtimeUpdate(payload);
         }
       )
@@ -63,14 +64,9 @@ export default function StatisticsPage() {
     setLoading(false);
   }
 
-  interface RealtimePayload {
-    eventType: "INSERT" | "UPDATE" | "DELETE";
-    new?: Player;
-    old?: Player;
-    [key: string]: any;
-  }
-
-  function handleRealtimeUpdate(payload: RealtimePayload) {
+  function handleRealtimeUpdate(
+    payload: RealtimePostgresChangesPayload<Player>
+  ) {
     const { eventType, new: newPlayer, old: oldPlayer } = payload;
 
     setPlayers((currentPlayers: Player[]) => {
@@ -136,7 +132,10 @@ export default function StatisticsPage() {
                       {player.name}
                     </CardTitle>
                     <CardDescription className="text-sm text-gray-400">
-                      Joined: {formatDate(player.inserted_at)}
+                      Joined:{" "}
+                      {player.inserted_at
+                        ? formatDate(player.inserted_at)
+                        : "Unknown"}
                     </CardDescription>
 
                     <div className="mt-2 flex flex-wrap gap-1">

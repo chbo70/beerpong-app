@@ -4,8 +4,30 @@ import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { Trophy } from "lucide-react";
 
+interface GameStats {
+  bombs: number;
+  bouncers: number;
+  airballs: number;
+  islands: number;
+}
+
+interface Game {
+  id: string;
+  tournament_id: string | null;
+  game_number: string | null;
+  round: number | null;
+  player1_id: string | null;
+  player2_id: string | null;
+  score1: number | null;
+  score2: number | null;
+  stats_player1: GameStats | null;
+  stats_player2: GameStats | null;
+  winner: string | null;
+  created_at: string | null;
+}
+
 interface Props {
-  game: any;
+  game: Game;
   players: { [id: string]: string };
   tournamentId: string;
   cardView?: boolean;
@@ -17,7 +39,7 @@ export function GameInteraction({
   tournamentId,
   cardView = false,
 }: Props) {
-  const [localGame, setLocalGame] = useState(() => ({
+  const [localGame, setLocalGame] = useState<Game>(() => ({
     ...game,
     stats_player1: game.stats_player1 ?? {
       bombs: 0,
@@ -52,23 +74,24 @@ export function GameInteraction({
     });
   }, [game]);
 
-  function updateStat(playerId: string, stat: string) {
-    setLocalGame((prev: any) => {
+  function updateStat(playerId: string, stat: keyof GameStats) {
+    setLocalGame((prev) => {
       const isPlayer1 = playerId === prev.player1_id;
       const statsKey = isPlayer1 ? "stats_player1" : "stats_player2";
+      const currentStats = prev[statsKey]!;
 
       return {
         ...prev,
         [statsKey]: {
-          ...prev[statsKey],
-          [stat]: prev[statsKey][stat] + 1,
+          ...currentStats,
+          [stat]: currentStats[stat] + 1,
         },
       };
     });
   }
 
   function setWinner(playerId: string) {
-    setLocalGame((prev: any) => ({
+    setLocalGame((prev) => ({
       ...prev,
       winner: playerId,
       score1: playerId === prev.player1_id ? 1 : 0,
@@ -102,17 +125,17 @@ export function GameInteraction({
       await Promise.all([
         supabase.rpc("replace_player_stats", {
           p_player_id: localGame.player1_id,
-          p_airballs: localGame.stats_player1.airballs || 0,
-          p_bouncers: localGame.stats_player1.bouncers || 0,
-          p_bombs: localGame.stats_player1.bombs || 0,
-          p_islands: localGame.stats_player1.islands || 0,
+          p_airballs: localGame.stats_player1!.airballs || 0,
+          p_bouncers: localGame.stats_player1!.bouncers || 0,
+          p_bombs: localGame.stats_player1!.bombs || 0,
+          p_islands: localGame.stats_player1!.islands || 0,
         }),
         supabase.rpc("replace_player_stats", {
           p_player_id: localGame.player2_id,
-          p_airballs: localGame.stats_player2.airballs || 0,
-          p_bouncers: localGame.stats_player2.bouncers || 0,
-          p_bombs: localGame.stats_player2.bombs || 0,
-          p_islands: localGame.stats_player2.islands || 0,
+          p_airballs: localGame.stats_player2!.airballs || 0,
+          p_bouncers: localGame.stats_player2!.bouncers || 0,
+          p_bombs: localGame.stats_player2!.bombs || 0,
+          p_islands: localGame.stats_player2!.islands || 0,
         }),
       ]);
 
@@ -175,11 +198,11 @@ export function GameInteraction({
       <div className="flex justify-between items-center">
         <PlayerSide
           playerId={localGame.player1_id}
-          playerName={players[localGame.player1_id]}
-          stats={localGame.stats_player1}
-          onStatClick={(stat) => updateStat(localGame.player1_id, stat)}
+          playerName={players[localGame.player1_id!] || "Unknown"}
+          stats={localGame.stats_player1!}
+          onStatClick={(stat) => updateStat(localGame.player1_id!, stat)}
           isWinner={localGame.winner === localGame.player1_id}
-          setWinner={() => setWinner(localGame.player1_id)}
+          setWinner={() => setWinner(localGame.player1_id!)}
         />
 
         <div className="flex flex-col items-center gap-2">
@@ -191,11 +214,11 @@ export function GameInteraction({
 
         <PlayerSide
           playerId={localGame.player2_id}
-          playerName={players[localGame.player2_id]}
-          stats={localGame.stats_player2}
-          onStatClick={(stat) => updateStat(localGame.player2_id, stat)}
+          playerName={players[localGame.player2_id!] || "Unknown"}
+          stats={localGame.stats_player2!}
+          onStatClick={(stat) => updateStat(localGame.player2_id!, stat)}
           isWinner={localGame.winner === localGame.player2_id}
-          setWinner={() => setWinner(localGame.player2_id)}
+          setWinner={() => setWinner(localGame.player2_id!)}
         />
       </div>
 
@@ -207,15 +230,10 @@ export function GameInteraction({
 }
 
 interface PlayerSideProps {
-  playerId: string;
+  playerId: string | null;
   playerName: string;
-  stats: {
-    bombs: number;
-    bouncers: number;
-    airballs: number;
-    islands: number;
-  };
-  onStatClick: (stat: string) => void;
+  stats: GameStats;
+  onStatClick: (stat: keyof GameStats) => void;
   isWinner: boolean;
   setWinner: () => void;
 }
@@ -241,7 +259,7 @@ function PlayerSide({
         {isWinner && <Trophy className="w-4 h-4 text-yellow-400" />}
       </button>
       <div className="grid grid-cols-2 sm:flex sm:flex-row gap-1">
-        {["bombs", "bouncers", "airballs", "islands"].map((stat) => (
+        {(["bombs", "bouncers", "airballs", "islands"] as const).map((stat) => (
           <Button
             key={stat}
             size="icon"

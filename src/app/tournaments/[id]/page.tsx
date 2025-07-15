@@ -66,12 +66,12 @@ export default function TournamentDetailPage() {
       .eq("tournament_id", id)
       .order("game_number", { ascending: true });
 
-    setGames(data);
+    setGames(data ?? []);
   }
 
   async function fetchPlayers() {
     const { data } = await supabase.from("players").select("id, name");
-    const map = Object.fromEntries(data.map((p) => [p.id, p.name]));
+    const map = Object.fromEntries((data ?? []).map((p) => [p.id, p.name]));
     setPlayers(map);
   }
 

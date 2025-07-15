@@ -12,6 +12,14 @@ import { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
 interface Player {
   id: string;
   name: string;
+  points: number;
+  airballs: number;
+  bouncers: number;
+  bombs: number;
+  islands: number;
+  games_played: number;
+  games_won: number;
+  inserted_at?: string; // optional, since nullable and timestamp
 }
 
 export default function ManagePlayersPage() {
@@ -38,13 +46,15 @@ export default function ManagePlayersPage() {
   async function fetchPlayers() {
     const { data, error } = await supabase
       .from("players")
-      .select("id, name")
+      .select(
+        "id, name, points, airballs, bouncers, bombs, islands, games_played, games_won, inserted_at"
+      )
       .order("inserted_at", { ascending: true });
 
     if (error) {
       console.error("Error fetching players:", error.message);
     } else {
-      setPlayers(data);
+      setPlayers(data as Player[]);
     }
   }
 
