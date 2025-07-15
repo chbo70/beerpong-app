@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { User } from "lucide-react";
+import { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
 
 interface Player {
   id: string;
@@ -27,8 +28,10 @@ export default function ManagePlayersPage() {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "players" },
-        (payload) => handleRealtimeUpdate(payload)
+        (payload: RealtimePostgresChangesPayload<Player>) =>
+          handleRealtimeUpdate(payload)
       )
+
       .subscribe();
 
     return () => {
@@ -49,19 +52,13 @@ export default function ManagePlayersPage() {
     }
   }
 
-  interface RealtimePayload {
-    eventType: "INSERT" | "UPDATE" | "DELETE";
-    new?: Player;
-    old?: Player;
-  }
-
-  function handleRealtimeUpdate(payload: RealtimePayload) {
-    console.log("Realtime update:", typeof payload);
+  function handleRealtimeUpdate(
+    payload: RealtimePostgresChangesPayload<Player>
+  ) {
     const { eventType, new: newPlayer, old: oldPlayer } = payload;
 
-    setPlayers((currentPlayers: Player[]) => {
+    setPlayers((currentPlayers) => {
       if (eventType === "INSERT") {
-        // Prevent duplicate inserts
         if (newPlayer && currentPlayers.find((p) => p.id === newPlayer.id))
           return currentPlayers;
         return newPlayer
@@ -70,7 +67,6 @@ export default function ManagePlayersPage() {
             )
           : currentPlayers;
       }
-
       if (eventType === "UPDATE") {
         return newPlayer
           ? currentPlayers
@@ -80,13 +76,11 @@ export default function ManagePlayersPage() {
               .sort((a, b) => a.name.localeCompare(b.name))
           : currentPlayers;
       }
-
       if (eventType === "DELETE") {
         return oldPlayer
           ? currentPlayers.filter((p) => p.id !== oldPlayer.id)
           : currentPlayers;
       }
-
       return currentPlayers;
     });
   }
