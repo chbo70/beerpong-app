@@ -63,23 +63,30 @@ export default function StatisticsPage() {
     setLoading(false);
   }
 
-  function handleRealtimeUpdate(payload: any) {
+  interface RealtimePayload {
+    eventType: "INSERT" | "UPDATE" | "DELETE";
+    new?: Player;
+    old?: Player;
+    [key: string]: any;
+  }
+
+  function handleRealtimeUpdate(payload: RealtimePayload) {
     const { eventType, new: newPlayer, old: oldPlayer } = payload;
 
-    setPlayers((currentPlayers) => {
-      if (eventType === "INSERT") {
+    setPlayers((currentPlayers: Player[]) => {
+      if (eventType === "INSERT" && newPlayer) {
         return [...currentPlayers, newPlayer].sort(
           (a, b) => b.points - a.points
         );
       }
 
-      if (eventType === "UPDATE") {
+      if (eventType === "UPDATE" && newPlayer) {
         return currentPlayers
           .map((player) => (player.id === newPlayer.id ? newPlayer : player))
           .sort((a, b) => b.points - a.points);
       }
 
-      if (eventType === "DELETE") {
+      if (eventType === "DELETE" && oldPlayer) {
         return currentPlayers.filter((player) => player.id !== oldPlayer.id);
       }
 

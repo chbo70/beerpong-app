@@ -49,29 +49,42 @@ export default function ManagePlayersPage() {
     }
   }
 
-  function handleRealtimeUpdate(payload: any) {
+  interface RealtimePayload {
+    eventType: "INSERT" | "UPDATE" | "DELETE";
+    new?: Player;
+    old?: Player;
+  }
+
+  function handleRealtimeUpdate(payload: RealtimePayload) {
+    console.log("Realtime update:", typeof payload);
     const { eventType, new: newPlayer, old: oldPlayer } = payload;
 
-    setPlayers((currentPlayers) => {
+    setPlayers((currentPlayers: Player[]) => {
       if (eventType === "INSERT") {
         // Prevent duplicate inserts
-        if (currentPlayers.find((p) => p.id === newPlayer.id))
+        if (newPlayer && currentPlayers.find((p) => p.id === newPlayer.id))
           return currentPlayers;
-        return [...currentPlayers, newPlayer].sort((a, b) =>
-          a.name.localeCompare(b.name)
-        );
+        return newPlayer
+          ? [...currentPlayers, newPlayer].sort((a, b) =>
+              a.name.localeCompare(b.name)
+            )
+          : currentPlayers;
       }
 
       if (eventType === "UPDATE") {
-        return currentPlayers
-          .map((p) =>
-            p.id === newPlayer.id ? { ...p, name: newPlayer.name } : p
-          )
-          .sort((a, b) => a.name.localeCompare(b.name));
+        return newPlayer
+          ? currentPlayers
+              .map((p) =>
+                p.id === newPlayer.id ? { ...p, name: newPlayer.name } : p
+              )
+              .sort((a, b) => a.name.localeCompare(b.name))
+          : currentPlayers;
       }
 
       if (eventType === "DELETE") {
-        return currentPlayers.filter((p) => p.id !== oldPlayer.id);
+        return oldPlayer
+          ? currentPlayers.filter((p) => p.id !== oldPlayer.id)
+          : currentPlayers;
       }
 
       return currentPlayers;
