@@ -21,8 +21,6 @@ export default function ManagePlayersPage() {
 
   useEffect(() => {
     fetchPlayers();
-
-    // Subscribe to realtime changes
     const channel = supabase
       .channel("players-management")
       .on(
