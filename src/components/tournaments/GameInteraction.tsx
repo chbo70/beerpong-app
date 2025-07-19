@@ -101,7 +101,6 @@ export function GameInteraction({
 
   async function saveGame() {
     try {
-      // Fetch previous game state
       const { data: existingGame, error: fetchError } = await supabase
         .from("games")
         .select("winner")
@@ -121,25 +120,27 @@ export function GameInteraction({
         previousWinner && newWinner && previousWinner !== newWinner;
       const isNewGameResult = !previousWinner && newWinner;
 
-      // Replace bombs, bouncers, airballs, islands every time
-      await Promise.all([
-        supabase.rpc("replace_player_stats", {
-          p_player_id: localGame.player1_id,
-          p_airballs: localGame.stats_player1!.airballs || 0,
-          p_bouncers: localGame.stats_player1!.bouncers || 0,
-          p_bombs: localGame.stats_player1!.bombs || 0,
-          p_islands: localGame.stats_player1!.islands || 0,
-        }),
-        supabase.rpc("replace_player_stats", {
-          p_player_id: localGame.player2_id,
-          p_airballs: localGame.stats_player2!.airballs || 0,
-          p_bouncers: localGame.stats_player2!.bouncers || 0,
-          p_bombs: localGame.stats_player2!.bombs || 0,
-          p_islands: localGame.stats_player2!.islands || 0,
-        }),
-      ]);
+      // ✅ Only add stats if it's a new result or same winner
+      if (!winnerChanged) {
+        await Promise.all([
+          supabase.rpc("add_player_stats", {
+            p_player_id: localGame.player1_id,
+            p_airballs: localGame.stats_player1!.airballs || 0,
+            p_bouncers: localGame.stats_player1!.bouncers || 0,
+            p_bombs: localGame.stats_player1!.bombs || 0,
+            p_islands: localGame.stats_player1!.islands || 0,
+          }),
+          supabase.rpc("add_player_stats", {
+            p_player_id: localGame.player2_id,
+            p_airballs: localGame.stats_player2!.airballs || 0,
+            p_bouncers: localGame.stats_player2!.bouncers || 0,
+            p_bombs: localGame.stats_player2!.bombs || 0,
+            p_islands: localGame.stats_player2!.islands || 0,
+          }),
+        ]);
+      }
 
-      // Handle points/wins/games_played manually
+      // Points / Wins handling
       if (winnerChanged) {
         await supabase.rpc("update_points_and_wins", {
           p_player_id: previousWinner,
